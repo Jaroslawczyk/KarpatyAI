@@ -1,0 +1,298 @@
+.lab {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  min-width: 0;
+}
+.lab__heading h3 {
+  margin: 10px 0;
+  font-size: 22px;
+}
+.lab__heading p {
+  font-size: 15px;
+  color: var(--muted);
+}
+.lab__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  margin: 22px 0 8px;
+}
+.lab__label output {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+.lab input[type='range'] {
+  width: 100%;
+  display: block;
+  margin: 0;
+  height: 30px;
+}
+.lab__visual {
+  margin: 18px 0;
+  min-width: 0;
+}
+.lab__readout {
+  display: flex;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+.lab__readout strong {
+  color: var(--accent);
+  font: 22px var(--mono);
+  margin-right: 12px;
+}
+.lab__note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 18px 0 0;
+}
+.plot {
+  display: flex;
+  align-items: stretch;
+}
+.plot__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px 0;
+  font: 12px var(--mono);
+  min-width: 30px;
+  color: var(--muted);
+}
+.plot svg {
+  width: calc(100% - 30px);
+  height: auto;
+  display: block;
+  overflow: hidden;
+}
+.plot__grid {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.plot__axis {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+.plot__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.plot__line--secondary {
+  stroke: var(--plot-secondary);
+  stroke-dasharray: 7 6;
+  stroke-width: 2;
+}
+.plot__point {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.plot__ticks {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 12px 0 38px;
+  color: var(--muted);
+  font: 12px var(--mono);
+}
+.bars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  text-align: center;
+}
+.bars__item {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  font: 12px var(--mono);
+}
+.bars__track {
+  height: 130px;
+  width: 65%;
+  background: var(--surface-raised);
+  display: flex;
+  align-items: flex-end;
+  border-radius: 5px 5px 0 0;
+  overflow: hidden;
+}
+.bars__fill {
+  width: 100%;
+  background: var(--accent);
+  min-height: 0;
+  transition: height 0.15s;
+}
+.bars__item strong {
+  font-size: 14px;
+}
+.embedding {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 20px;
+  align-items: center;
+}
+.embedding__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.embedding__row--active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.embedding__flow {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+.embedding__flow code {
+  word-break: break-word;
+}
+.embedding__flow span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.tree {
+  display: grid;
+  gap: 26px;
+}
+.tree__level {
+  display: grid;
+  grid-template-columns: repeat(var(--nodes), minmax(0, 1fr));
+  gap: 7px;
+}
+.tree__node {
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent-bg);
+  text-align: center;
+  color: var(--accent);
+  padding: 10px 0;
+  font: 14px var(--mono);
+  position: relative;
+}
+.tree__level + .tree__level .tree__node::before {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 26px;
+  left: 50%;
+  top: -27px;
+  background: var(--accent);
+}
+.attention {
+  max-width: 420px;
+  margin: 0 auto;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.attention__row {
+  display: grid;
+  grid-template-columns: 0.8fr repeat(4, 1fr);
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+.attention__row > span {
+  padding: 9px 2px;
+  text-align: center;
+}
+.attention__row--active {
+  border-color: var(--accent);
+}
+.attention__cell {
+  background: color-mix(in srgb, var(--accent) calc(var(--weight) * 25%), var(--surface));
+  border-radius: 4px;
+  color: var(--text);
+}
+.attention__cell--masked {
+  color: var(--muted);
+  background: var(--surface-raised);
+}
+.lab__text {
+  width: 100%;
+  resize: vertical;
+  min-height: 100px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 14px;
+  font: 15px/1.7 var(--mono);
+}
+.lab__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.tokens {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.tokens__token {
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  border-radius: 5px;
+  font: 12px var(--mono);
+}
+.tokens__token--merged {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.lab__decoded {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+.lab__decoded code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.lab__history {
+  margin: 14px 0;
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .lab {
+    padding: 18px;
+  }
+  .embedding {
+    grid-template-columns: 1fr;
+  }
+  .bars {
+    gap: 8px;
+  }
+  .bars__item {
+    font-size: 11px;
+  }
+  .attention {
+    font-size: 12px;
+  }
+  .tree__level {
+    gap: 4px;
+  }
+  .tree__node {
+    font-size: 12px;
+    border-radius: 4px;
+  }
+}

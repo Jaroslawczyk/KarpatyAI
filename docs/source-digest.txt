@@ -1,0 +1,815 @@
+
+=== 1.txt ===
+
+0:00 intro (5 captions)
+hello my name is andre and i've been training deep neural networks for a bit more than a decade and in this lecture i'd like to show you what neural network training looks like under the hood so in particular we are going to start with a blank jupiter notebook and by the end of this lecture we will define and train in neural net and you'll get to see everything that
+goes on under the hood and exactly sort of how that works on an intuitive level now specifically what i would like to do is i would like to take you through building of micrograd now micrograd is
+
+0:29 micrograd overview (76 captions)
+this library that i released on github about two years ago but at the time i only uploaded the source code and you'd have to go in by yourself and really figure out how it works so in this lecture i will take you through it step by step and kind of comment on all the pieces of it so what is micrograd and why is it interesting
+how g will respond if a and b get tweaked a tiny amount in a positive direction okay now you might be confused about what this expression is that we built out
+and that's all you need to understand to understand neural network training and everything else is just efficiency and of course there's a lot to efficiency but fundamentally that's all that's happening okay so now let's dive right
+
+8:09 derivative of a simple function with one input (58 captions)
+in and implement micrograph step by step the first thing i'd like to do is i'd like to make sure that you have a very good understanding intuitively of what a derivative is and exactly what information it gives you so let's start with some basic imports that i copy paste in every jupiter notebook always and let's define a function a scalar
+slope at that point does the function go up or does it go down and by how much and that's the slope of that function the the slope of that response at that point and so we can basically evaluate
+yeah at that precise point if we nudge in a positive direction the function doesn't respond this stays the same almost and so that's why the slope is zero okay now let's look at a bit more complex case so we're going to start you know
+
+14:15 derivative of a function with multiple inputs (49 captions)
+complexifying a bit so now we have a function here with output variable d that is a function of three scalar inputs a b and c so a b and c are some specific values three inputs into our expression graph and a single output d
+so we're bumping a by h b as minus three c is ten so you can just intuitively think through this derivative and what it's
+the rate at which d will increase as we scale c okay so we now have some intuitive sense of what this derivative is telling you about the function and we'd like to move to neural networks now as i mentioned
+
+19:11 starting the core Value object of micrograd and its visualization (125 captions)
+neural networks will be pretty massive expressions mathematical expressions so we need some data structures that maintain these expressions and that's what we're going to start to build out now so we're going to build out this value object that i showed you in the readme page of micrograd so let me copy paste a skeleton of the
+so that's dried out of d and i'm not going to go through this in complete detail you can take a look at graphless and its api uh graphis is a open source graph visualization software
+and of course this grad again as i mentioned is representing the derivative of the output in this case l with respect to this value so with respect to so this is the derivative of l with respect to f with respect to d and so on so let's now fill
+
+32:11 manual backpropagation example #1: simple expression (183 captions)
+in those gradients and actually do back propagation manually so let's start filling in these gradients and start all the way at the end as i mentioned here first we are interested to fill in this gradient here so what is the derivative of l with respect to l in other words if i change l by a tiny amount of h
+that information together to write dl by dc and the answer of course is the chain rule in calculus and so um i pulled up a chain rule here from kapedia
+always so we just go through and recursively multiply on the local derivatives and that's what back propagation is is just a recursive application of chain rule backwards through the computation graph
+
+51:10 preview of a single optimization step (17 captions)
+let's see this power in action just very briefly what we're going to do is we're going to nudge our inputs to try to make l go up so in particular what we're doing is we want a.data we're going to change it and if we want l to go up that means we just have to go in the direction of the
+positively so it should become less negative it should go up to say negative you know six or something like that uh it's hard to tell exactly and we'd have to rewrite the forward pass so let
+optimization that we'll end up running and really does gradient just give us some power because we know how to influence the final outcome and this will be extremely useful for training knowledge as well as you'll see
+
+52:52 manual backpropagation example #2: a neuron (155 captions)
+so now i would like to do one more uh example of manual backpropagation using a bit more complex and uh useful example we are going to back propagate through a neuron so we want to eventually build up neural networks and in the simplest case these
+eight then we'll see that what's flowing into the 10h now is two and 10h is squashing it to 0.96 so we're already hitting the tail of this 10h and
+up so if this weight goes up then this neuron's output would have gone up and proportionally because the gradient is one okay so doing the back propagation manually is obviously ridiculous so we
+
+1:09:05 implementing the backward function for each operation (80 captions)
+are now going to put an end to this suffering and we're going to see how we can implement uh the backward pass a bit more automatically we're not going to be doing all of it manually out here it's now pretty obvious to us by example how these pluses and times are back property ingredients so let's go up to the value
+and so we saw that the local the gradient is 1 minus the tan h of x squared which here is t that's the local derivative because that's t is the output of this 10 h so 1 minus t squared is the local derivative
+exactly as we did before but now we've done it through calling that backward um sort of manually so we have the lamp one last piece to get rid of which is us calling
+
+1:17:36 implementing the backward function for a whole expression graph (48 captions)
+underscore backward manually so let's think through what we are actually doing um we've laid out a mathematical expression and now we're trying to go backwards through that expression um so going backwards through the expression just means that we never want to call a dot backward for any node
+output so this is o and then this is n and then all the other nodes get laid out before it so that builds the topological graph and really what we're doing now is we're
+there we go and that's uh that's back propagation place for one neuron now we shouldn't be too happy with ourselves actually because we have a bad
+
+1:22:32 fixing a backprop bug when one node is used multiple times (44 captions)
+bug um and we have not surfaced the bug because of some specific conditions that we are we have to think about right now so here's the simplest case that shows the bug say i create a single node a and then i create a b that is a plus a and then i called backward
+we didn't see the issue but here if a variable is used more than once what's going to happen during backward pass we're backpropagating from f to e to d so far so good but now equals it backward and it deposits its
+delete the step delete this keep the code that draws and then delete this example and leave behind only the definition of value
+
+1:27:05 breaking up a tanh, exercising with more operations (121 captions)
+and now let's come back to this non-linearity here that we implemented the tanh now i told you that we could have broken down 10h into its explicit atoms in terms of other expressions if we had the x function so if you remember tan h is defined like this and we chose to develop tan h as a single function
+this is the skeleton for it so this function will be called when we try to raise a value to some power and other will be that power now i'd like to make sure that other is only an int or a float usually other is
+if you can write the local gradients you can chain the gradient and you can continue back propagation so the design of what those functions are is completely up to you so now i would like to show you how you
+
+1:39:33 doing the same thing but in PyTorch: comparison (43 captions)
+can do the exact same thing by using a modern deep neural network library like for example pytorch which i've roughly modeled micrograd by and so pytorch is something you would use in production and i'll show you how you can do the exact same thing but in pytorch api so i'm just going to copy paste it in and walk you through it a little bit
+make sure that fighters knows that they require gradients now by default these are set to false by the way because of efficiency reasons because usually you would not want gradients for leaf nodes like the inputs to the network and this
+efficient because we are working with these tensor objects and we can do lots of operations in parallel on all of these tensors but otherwise what we've built very much agrees with the api of pytorch
+
+1:43:55 building out a neural net library (multi-layer perceptron) in micrograd (69 captions)
+okay so now that we have some machinery to build out pretty complicated mathematical expressions we can also start building out neural nets and as i mentioned neural nets are just a specific class of mathematical expressions so we're going to start building out a neural net piece by piece and eventually we'll build out a two-layer multi-layer layer perceptron as it's called and i'll
+these elements of this sum will be added on top of zero to begin with but actually we can just start with cell dot b and then we just have an expression like this
+through this and back propagate into these weights of all these neurons so let's see how that works okay so let's create ourselves a very simple example data set here
+
+1:51:08 creating a tiny dataset, writing the loss function (67 captions)
+so this data set has four examples and so we have four possible inputs into the neural net and we have four desired targets so we'd like the neural net to assign or output 1.0 when it's fed this example negative one when it's fed these examples and one when it's fed this
+loss and so the final loss here will be just the sum of all of these numbers so you see that this should be zero roughly plus zero roughly
+will be for the neural network parameters the ws and the bs and those we of course we want to change okay so now we're going to want some convenience code to gather up all of the parameters of the neural net so that we
+
+1:58:01 collecting all of the parameters of the neural net (30 captions)
+can operate on all of them simultaneously and every one of them we will nudge a tiny amount based on the gradient information so let's collect the parameters of the neural net all in one array so let's create a parameters of self that just returns celta w which is a list
+for p in neuron dot parameters so it's a single list comprehension in python you can sort of nest them like this and you can um
+so in total this mlp has 41 parameters and now we'll be able to change them if we recalculate the loss here we see
+
+2:01:18 doing gradient descent optimization manually, training the network (123 captions)
+that unfortunately we have slightly different predictions and slightly different laws but that's okay okay so we see that this neurons gradient is slightly negative we can also look at its data right now which is 0.85 so this is the current
+and the predictions are basically perfect so somehow we basically we were doing way too big updates and we briefly exploded but then somehow we ended up getting into a really good spot so usually this
+but chances are is that if we had a more complex problem then actually this bug would have made us not optimize the loss very well and we were only able to get away with it because the problem is very simple
+
+2:14:03 summary of what we learned, how to go towards modern neural nets (28 captions)
+so let's now bring everything together and summarize what we learned what are neural nets neural nets are these mathematical expressions fairly simple mathematical expressions in the case of multi-layer perceptron that take input as the data and they take input the weights and the parameters of the
+parameters and it's a massive blob of neural tissue simulated neural tissue roughly speaking and you can make it do extremely complex problems and these neurons then have all
+training is identical and pervasive and now you understand intuitively how that works under the hood in the beginning of this video i told you that by the end of it you would understand everything in micrograd and then we'd
+
+2:16:50 walkthrough of the full code of micrograd on github (42 captions)
+slowly build it up let me briefly prove that to you so i'm going to step through all the code that is in micrograd as of today actually potentially some of the code will change by the time you watch this video because i intend to continue developing micrograd but let's look at what we have so far at least init.pi is empty when you go to engine.pi that has the value
+classification demo than the one i covered in this lecture so we only had a tiny data set of four examples um here we have a bit more complicated example with lots of blue points and lots of red points and we're trying to again build a
+points so that's the slightly more complicated example and then we'll demo that hyper ymb that you're free to go over but yeah as of today that is micrograd i also wanted to show you a little bit of real stuff so that you get to see how
+
+2:21:13 real stuff: diving into PyTorch, finding their backward pass for tanh (34 captions)
+this is actually implemented in production grade library like by torch uh so in particular i wanted to show i wanted to find and show you the backward pass for 10h in pytorch so here in micrograd we see that the backward password 10h is one minus t square where t is the output of the tanh of x
+that resembles our backward pass so they have a times one minus b square uh so this b b here must be the output of the 10h and this is the health.grad so here we found it
+and so that's the only thing you have to tell pytorch and everything would just work and you can register new types of functions in this way following this example and that is everything that i wanted to cover in this lecture so i hope you enjoyed building out
+
+2:24:42 conclusion (6 captions)
+micrograd with me i hope you find it interesting insightful and yeah i will post a lot of the links that are related to this video in the video description below i will also probably post a link to a discussion forum or discussion group where you can ask questions related to this video and then
+most common questions but for now that's it i hope you enjoyed it if you did then please like and subscribe so that youtube knows to feature this video to more people and that's it for now i'll see you later
+
+2:25:22 outtakes :) (5 captions)
+now here's the problem we know dl by wait what is the problem and that's everything i wanted to cover in this lecture so i hope you enjoyed us building up microcraft micro crab
+okay now let's do the exact same thing for multiply because we can't do something like a times two oops i know what happened there
+
+=== 2.txt ===
+
+0:00 intro (30 captions)
+hi everyone hope you're well and next up what i'd like to do is i'd like to build out make more like micrograd before it make more is a repository that i have on my github webpage you can look at it but just like with micrograd i'm going to build it out step by step and i'm going to spell everything out so we're
+character level language model so what that means is that it is treating every single line here as an example and within each example it's treating them all as sequences of individual characters so r e e s e is this example
+networks such as dolly stable diffusion and so on but for now we have to start here character level language modeling let's go so like before we are starting with a completely blank jupiter notebook page
+
+3:06 reading and exploring the dataset (32 captions)
+the first thing is i would like to basically load up the dataset names.txt so we're going to open up names.txt for reading and we're going to read in everything into a massive string and then because it's a massive string we'd only like the individual words and put them in the list so let's call split lines
+like isabella in the data set telling us really it's saying that the character i is a very likely character to come first in the sequence of a name the character s is likely to come
+may have a lot more information we're always just looking at the previous character to predict the next one so it's a very simple and weak language model but i think it's a great place to start so now let's begin by looking at these
+
+6:25 exploring the bigrams in the dataset (29 captions)
+bi-grams in our data set and what they look like and these bi-grams again are just two characters in a row so for w in words each w here is an individual word a string we want to iterate uh for we're going to iterate this word
+ends and that's why we only get these tuples so pretty cute so these are the consecutive elements in the first word now we have to be careful because we actually have more information here than just these three
+olivia or eva and indeed we can actually potentially do this for the entire data set but we won't print that that's going to be too much but these are the individual character diagrams and we can print them
+
+9:24 counting bigrams in a python dictionary (33 captions)
+now in order to learn the statistics about which characters are likely to follow other characters the simplest way in the bigram language models is to simply do it by counting so we're basically just going to count how often any one of these combinations occurs in the training set in these words
+the entire data set so these are the counts across all the words of the individual pie grams and we could for example look at some of the most common ones and least common ones
+well so this is kind of the individual counts that we achieve over the entire data set now it's actually going to be significantly more convenient for us to
+
+12:48 counting bigrams in a 2D torch tensor ("training the model") (55 captions)
+keep this information in a two-dimensional array instead of a python dictionary so we're going to store this information in a 2d array and the rows are going to be the first character of the bigram and the columns are going to be the second character and
+and now let's copy paste this here but instead of having a dictionary b which we're going to erase we now have an n now the problem here is that we have
+and give us a large 28 by 28 array of all these counts so if we print n this is the array but of course it looks ugly so let's erase this ugly mess and
+
+18:21 visualizing the bigram tensor (25 captions)
+let's try to visualize it a bit more nicer so for that we're going to use a library called matplotlib so matplotlib allows us to create figures so we can do things like plt item show of the counter array so this is the 28x28 array
+and every one of these is basically like b follows g zero times b follows h 41 times um so a follows j 175 times
+so that's what's happening there and these are just some options to make it look nice so what is the structure of this array we have all these counts and we see that some of them occur often and some of them do not occur often now if you scrutinize this carefully you
+
+20:56 deleting spurious (S) and (E) tokens in favor of a single . token (30 captions)
+will notice that we're not actually being very clever that's because when you come over here you'll notice that for example we have an entire row of completely zeros and that's because the end character is never possibly going to be the first character of a bi-gram because we're always placing these end tokens all at the end of the diagram
+okay let me swing this over here now one more thing that i would like to do is i would actually like to make this special character half position zero
+the ending characters and in between we have the structure of what characters follow each other so this is the counts array of our entire data set so this array actually has all
+
+24:03 sampling from the model (120 captions)
+the information necessary for us to actually sample from this bigram uh character level language model and um roughly speaking what we're going to do is we're just going to start following these probabilities and these counts and we're going to start sampling from the from the model so in the beginning of course
+and now we can sample from it so if we use the same seed and then we sample from this distribution let's just get one sample
+this is what we get so you can see that it is more name-like it is actually working it's just um my gram is so terrible and we have to do better now next i would like to fix an inefficiency that we have going on here
+
+36:20 efficiency! vectorized normalization of the rows, tensor broadcasting (133 captions)
+because what we're doing here is we're always fetching a row of n from the counts matrix up ahead and then we're always doing the same things we're converting to float and we're dividing and we're doing this every single iteration of this loop and we just keep renormalizing these rows over and over again and it's extremely inefficient and wasteful so what i'd like to do is i'd like to actually
+and what is it that these arrays do when you divide 27 by 27 by 27 by one what it does is that it takes this dimension one and it stretches it out it copies it to match
+under the hood and then let's erase this we don't need it and let's also um just do fewer just so i'm not wasting space
+
+50:14 loss function (the negative log likelihood of the data under our model) (102 captions)
+okay so we're actually in a pretty good spot now we trained a bigram language model and we trained it really just by counting uh how frequently any pairing occurs and then normalizing so that we get a nice property distribution so really these elements of this array p are really the parameters of our biogram language model giving us and summarizing
+from your high school or undergrad and so on so we have that basically the likelihood of the product probabilities the log likelihood is just the sum of the logs of the individual
+then you see that andre is actually kind of like an unlikely word like on average we take three log probability to represent it and roughly that's because ej apparently is very uncommon as an example
+
+1:00:50 model smoothing with fake counts (21 captions)
+now think through this um when i take andre and i append q and i test the probability of it under q we actually get infinity and that's because jq has a zero percent probability according to our model so
+out your model a little bit and it's called model smoothing and roughly what's happening is that we will eight we will add some fake counts so imagine adding a count of one to everything so we add a count of one
+still finds it very surprising that this was a word or a bigram but we don't get negative infinity so it's kind of like a nice fix that people like to apply sometimes and it's called model smoothing okay so we've now trained a respectable bi-gram character level
+
+1:03:00 PART 2: the neural network approach: intro (25 captions)
+language model and we saw that we both sort of trained the model by looking at the counts of all the bigrams and normalizing the rows to get probability distributions we saw that we can also then use those parameters of this model to perform
+our neural network is going to be a still a background character level language model so it receives a single character as an input then there's neural network with some weights or some parameters w
+function and we're going to minimize it so we're going to tune the weights so that the neural net is correctly predicting the probabilities for the next character so let's get started the first thing i want to do is i want to compile the
+
+1:05:27 creating the bigram dataset for the neural net (45 captions)
+training set of this neural network right so create the training set of all the bigrams okay and here i'm going to copy paste this code because this code iterates over all the
+a high probability when one is input we want zero to have a very high probability so there are five separate input examples to a neural nut in this data set
+unfortunately not easy and not very well documented and you have to be careful out there what we want here is integers because that's what makes uh sense um and so lowercase tensor is what we are using
+
+1:10:01 feeding integers into neural nets? one-hot encodings (38 captions)
+okay now we want to think through how we're going to feed in these examples into a neural network now it's not quite as straightforward as plugging it in because these examples right now are integers so there's like a 0 5 or 13 it gives us the index of the character and you can't just plug an integer index into a neural net
+and then we see that x encoded that shape is 5 by 27 and uh we can also visualize it plt.i am show of x inc
+so that these everything is the same everything looks the same but the d-type is float32 and floats can feed into neural nets so now let's construct our
+
+1:13:54 the "neural net": one linear layer of neurons implemented with matrix multiplication (45 captions)
+first neuron this neuron will look at these input vectors and as you remember from micrograd these neurons basically perform a very simple function w x plus b where w x is a dot product right so we can achieve the same thing here let's first define the weights of this
+there's no bias it has value w times x for all of them independently now instead of a single neuron though i would like to have 27 neurons and i'll show you in a second
+product and that's this number so you see that this is just being done efficiently by the matrix multiplication operation for all the input examples and for all the output neurons of this first layer
+
+1:18:46 transforming neural net outputs into probabilities: the softmax (72 captions)
+okay so we fed our 27-dimensional inputs into a first layer of a neural net that has 27 neurons right so we have 27 inputs and now we have 27 neurons these neurons perform w times x they don't have a bias and they don't have a non-linearity like 10 h we're going to
+counts here 112 7 51 1 etc the neural net is kind of now predicting uh counts and these counts are positive numbers
+character that you input and so now the question is just can we optimize and find a good w such that the probabilities coming out are pretty good and the way we measure pretty good is by the loss function okay
+
+1:26:17 summary, preview to next steps, reference to micrograd (92 captions)
+so i organized everything into a single summary so that hopefully it's a bit more clear so it starts here with an input data set we have some inputs to the neural net and we have some labels for the correct next character in a sequence these are integers here i'm using uh torch generators now
+just by chance this one actually has a pretty good probability and therefore pretty low negative log likelihood and finally here it thought this was one percent likely so overall our average negative log
+actually going to do the exact same thing so this was the forward pass so where we did this and probs is our wipe red so now we have to evaluate the loss but we're not using the mean squared error we're using the
+
+1:35:52 vectorized loss (26 captions)
+negative log likelihood because we are doing classification we're not doing regression as it's called so here we want to calculate loss now the way we calculate it is it's just this average negative log likelihood now this probs here
+all of these sorry about that all of these um integers in the vectors so the these ones you see how they're just 0 1
+we get the same loss and the same loss we can consider service part of this forward pass and we've achieved here now loss okay so we made our way all the way to loss we've defined the forward pass
+
+1:38:40 backward and update, in PyTorch (41 captions)
+we forwarded the network and the loss now we're ready to do the backward pass so backward pass we want to first make sure that all the gradients are reset so they're at zero now in pytorch you can set the gradients to be zero but you can also just set it to none and setting it to none is more efficient and pi torch will interpret
+so for example this number all the way here if this element the zero zero element of w because the gradient is positive is telling us that this has a positive
+and when we achieve a low loss that will mean that the network is assigning high probabilities to the correctness characters okay so i rearranged everything and i put it all together from scratch
+
+1:42:59 putting everything together (48 captions)
+so here is where we construct our data set of bigrams you see that we are still iterating only on the first word emma i'm going to change that in a second i added a number that counts the number of elements in x's so that we explicitly see that number of examples is five
+and that makes sense because fundamentally we're not taking any additional information we're still just taking in the previous character and trying to predict the next one but instead of doing it explicitly by counting and normalizing
+scalable and it's something that actually we can improve on over time so that's where we will be digging next i wanted to point out two more things number one i want you to notice that
+
+1:47:54 note 1: one-hot encoding really just selects a row of the next Linear layer's weight matrix (24 captions)
+this x ink here this is made up of one hot vectors and then those one hot vectors are multiplied by this w matrix and we think of this as multiple neurons being forwarded in a fully connected manner but actually what's happening here is that for example
+well that's actually exactly what's happening here because we're taking the index we're encoding it as one hot and multiplying it by w so logics literally becomes the
+optimization except we arrived at it piece by piece by following the loss and that's why we also obtain the same loss function at the end and the second note is if i come here
+
+1:50:20 note 2: model smoothing as regularization loss (41 captions)
+remember the smoothing where we added fake counts to our counts in order to smooth out and make more uniform the distributions of these probabilities and that prevented us from assigning zero probability to to any one bigram now if i increase the count here
+and because we're squaring uh there will be no signs anymore um negatives and positives all get squashed to be positive numbers and then the way this works is you achieve zero loss if w is exactly or
+force of this loss and we will never and basically everything will be uniform predictions so i thought that's kind of cool okay and lastly before we wrap up i wanted to show you how you would sample from this neural net model
+
+1:54:36 sampling from the neural net (17 captions)
+and i copy-pasted the sampling code from before where remember that we sampled five times and all we did we start at zero we grabbed the current ix row of p and that was our probability row from which we sampled the next index and just accumulated that and
+w corresponding to ix really that's what's happening and that gets our logits and then we normalize those low jets exponentiate to get counts and then normalize to get uh the distribution and
+interpretation but fundamentally this is basically the same model and gives the same samples here and so that's kind of cool okay so we've actually covered a lot of ground we introduced the bigram character level
+
+1:56:20 conclusion (14 captions)
+language model we saw how we can train the model how we can sample from the model and how we can evaluate the quality of the model using the negative log likelihood loss and then we actually trained the model in two completely different ways that actually get the same result and the same model in the first way we just counted up the
+gradient-based framework is much more flexible and right now our neural network is super simple we're taking a single previous character and we're taking it through a single linear layer to calculate the logits
+everything stays identical it's just that this neural net will now complexify all the way to transformers so that's gonna be pretty awesome and i'm looking forward to it for now bye
+
+=== 3.txt ===
+
+0:00 intro (18 captions)
+hi everyone today we are continuing our implementation of makemore now in the last lecture we implemented the bigram language model and we implemented it both using counts and also using a super simple neural network that had a single linear layer now this is the jupyter notebook that we built out last
+now the problem with this approach though is that if we are to take more context into account when predicting the next character in a sequence things quickly blow up and this table the size of this table grows and in fact it grows
+and so there's just way too many rows of this matrix it's way too few counts for each possibility and the whole thing just kind of explodes and doesn't work very well
+
+1:48 Bengio et al. 2003 (MLP language model) paper walkthrough (72 captions)
+so that's why today we're going to move on to this bullet point here and we're going to implement a multi-layer perceptron model to predict the next uh character in a sequence and this modeling approach that we're going to adopt follows this paper benguetal 2003 so i have the paper pulled up here now this isn't the very first paper that
+co-occur in lots of very similar contexts and so even though you haven't seen this exact phrase or if you haven't seen exactly walking or running you can through the embedding space
+uh that represents a variation of a neural nut that we are not going to explore in this video so that's the setup and now let's implement it okay so i started a brand new notebook for this lecture we are importing pytorch and we are
+
+9:07 (re-)building our training dataset (33 captions)
+importing matplotlib so we can create figures then i am reading all the names into a list of words like i did before and i'm showing the first eight right here keep in mind that we have a 32 000 in total these are just the first eight and then here i'm building out the vocabulary of characters and all the
+so when we are given the context of just uh dot dot the first character in a sequence is e in this context the label is m when the context is this the label is m
+and then y are the labels so given this let's now write a neural network that takes these axes and predicts the y's first let's build the embedding lookup
+
+12:21 implementing the embedding lookup table (60 captions)
+table c so we have 27 possible characters and we're going to embed them in a lower dimensional space in the paper they have 17 000 words and they bet them in uh spaces as small dimensional as 30. so they cram 17 000 words into 30 dimensional space in our
+piece here this embedding of the integer we can either think of it as the integer indexing into a lookup table c but equivalently we can also think of this little piece here as a first layer of this bigger neural net
+simultaneously all of the integers in x we can simply do c of x and that is our embedding and that just works now let's construct this layer here the hidden layer
+
+18:38 implementing the hidden layer + internals of torch.Tensor: storage, views (102 captions)
+so we have that w1 as i'll call it are these weights which we will initialize randomly now the number of inputs to this layer is going to be three times two right because we have two dimensional embeddings and we have three of them so the number of inputs is 6 and the number of neurons in this layer
+dimensional tensors we do this by calling a view and we can say that actually this is not a single vector of 18 this is a two by nine tensor or alternatively this is a
+of this matrix so that is correct that's what we'd like and it's always good practice you just make sure so that you don't shoot yourself in the foot and finally let's create the final layer here
+
+29:17 implementing the output layer (7 captions)
+so let's create w2 and v2 the input now is 100 and the output number of neurons will be for us 27 because we have 27 possible characters that come next so the biases will be 27 as well
+logistic shape is 32 by 27 and the logits look good now exactly as we saw in the previous video we want to take these logits and we want to first exponentiate
+
+29:58 implementing the negative log likelihood loss (23 captions)
+them to get our fake counts and then we want to normalize them into a probability so prob is counts divide and now counts dot sum along the first dimension and keep them as true exactly as in the previous video and so prob that shape now is 32 by 27
+prop in torch.range of 32 which iterates the roads and in each row we'd like to grab this column as given by y so this gives the current probabilities
+and this is the loss that we'd like to minimize to get the network to predict the correct character in the sequence okay so i rewrote everything here and made it a bit more respectable so here's our data set here's all the parameters
+
+32:22 summary of the full network (5 captions)
+that we defined i'm now using a generator to make it reproducible i clustered all the parameters into a single list of parameters so that for example it's easy to count them and see that in total we currently have about 3400 parameters and this is the forward pass as we developed it and we arrive at a single number here
+the loss that is currently expressing how well this neural network works with the current setting of parameters now i would like to make it even more respectable so in particular see these
+
+32:52 introducing F.cross_entropy and why (51 captions)
+lines here where we take the logits and we calculate the loss we're not actually reinventing the wheel here this is just um classification and many people use classification and that's why there is a functional.cross entropy function in pytorch to calculate this much more
+it and normalizing it to sum to 1. so when logits take on this values everything is well and good and we get a nice probability distribution now consider what happens when some of these logits take on more extreme values
+cross-entropy number one the forward pass can be much more efficient the backward pass can be much more efficient and also things can be much more numerically well behaved okay so let's now set up the training of this neural
+
+37:58 implementing the training loop, overfitting one batch (34 captions)
+net we have the forward pass uh we don't need these is that we have the losses equal to the f.cross entropy that's the forward pass then we need the backward pass first we want to set the gradients to be zero so for p in parameters
+doing what's called overfitting a single batch of the data and getting a very low loss and good predictions um but that's just because we have so many parameters for so few examples so it's easy to
+so now all we have to do is we just need to make sure that we read in the full data set and optimize the neural net okay so let's swing back up where we created the dataset and we see that here we only use the
+
+41:30 training on the full dataset, minibatches (39 captions)
+first five words so let me now erase this and let me erase the print statements otherwise we'd be printing way too much and so when we processed the full data set of all the words we now had 228 000 examples instead of just 32. so let's now scroll back down to this is much larger reinitialize the weights the same number of parameters
+with ix to only grab those rows so we're only getting 32 rows of x and therefore embeddings will again be 32 by three by two not two hundred thousand by three by two
+so this point one i just guessed it so one question is how do you determine this learning rate and how do we gain confidence that we're stepping in the right sort of speed so i'll show you one way
+
+45:41 finding a good initial learning rate (76 captions)
+to determine a reasonable learning rate it works as follows let's reset our parameters to the initial settings and now let's print in every step but let's only do 10 steps or so
+and so basically we started with a very low learning rate and we went all the way up to a learning rate of negative one and now what we can do is we can plt that plot and we can plot the two so we can plot
+improved on the bi-gram language model using this simple neural net as described here using these 3 400 parameters now there's something we have to be careful with
+
+53:22 splitting up the dataset into train/val/test splits and why (71 captions)
+i said that we have a better model because we are achieving a lower loss 2.3 much lower than 2.45 with the bi-gram model previously now that's not exactly true and the reason that's not true is that this is actually fairly small model but these models can get larger and larger if you keep adding neurons and
+and then here i am shuffling up all the words so these are the input words that we get we are randomly shuffling them all up and then um we're going to
+is very tiny very small and we expect to make performance improvements by scaling up the size of this neural net so let's do that now so let's come over here and let's increase the size of the
+
+1:00:51 experiment: larger hidden layer (41 captions)
+neural net the easiest way to do this is we can come here to the hidden layer which currently has 100 neurons and let's just bump this up so let's do 300 neurons and then this is also 300 biases and here we have 300 inputs into the final layer so
+in the training and we may want to increase the batch size so that we have a bit more um correct gradient and we're not thrashing too much and we can actually like optimize more properly
+but once i make this greater than two we won't be able to visualize them so here okay we're at 2.23 and 2.24 so um we're not improving much more and maybe the bottleneck now is the character embedding size which is two
+
+1:05:28 visualizing the character embeddings (18 captions)
+so here i have a bunch of code that will create a figure and then we're going to visualize the embeddings that were trained by the neural net on these characters because right now the embedding has just two so we can visualize all the characters with the x and the y coordinates as the two embedding locations for each of these
+neural net thinks that they're very similar and kind of like interchangeable if that makes sense um then the the points that are like really far away are for example q q is kind of treated as an exception and q has a very
+did not sufficiently improve the loss we're thinking that the um constraint to better performance right now could be these embedding pictures so let's make them bigger okay so let's scroll up here
+
+1:07:17 experiment: larger embedding size (43 captions)
+and now we don't have two dimensional embeddings we are going to have say 10 dimensional embeddings for each word then this layer will receive 3 times 10 so 30 inputs will go into the hidden layer
+we'd hope that we would be able to beat uh 2.32 but again we're just kind of like doing this very haphazardly so i don't actually have confidence that our
+are taking as an input so instead of just three characters we could be taking more characters as an input and that could further improve the loss okay so i changed the code slightly so we have here 200 000 steps of the
+
+1:11:50 summary of our final code, conclusion (16 captions)
+optimization and in the first 100 000 we're using a learning rate of 0.1 and then in the next 100 000 we're using a learning rate of 0.01 this is the loss that i achieve and these are the performance on the training and validation loss and in particular the best validation loss i've been able to obtain in the
+we running what is the learning rate how does it change over time how does it decay you can change the batch size and you may be able to actually achieve a much better convergence speed
+with so all of those are not available to you and you should be able to beat this number i'm leaving that as an exercise to the reader and that's it for now and i'll see you next time
+
+1:13:24 sampling from the model (16 captions)
+before we wrap up i also wanted to show how you would sample from the model so we're going to generate 20 samples at first we begin with all dots so that's the context and then until we generate the zeroth character again we're going to embed the current context
+exponentiates the logits and makes them sum to one and similar to cross entropy it is careful that there's no overflows once we have the probabilities we sample from them using torture multinomial to get our next index and then we shift the
+you know it's starting to sound a little bit more name-like so we're definitely making progress but we can still improve on this model quite a lot okay sorry there's some bonus content i wanted to mention that i want to make
+
+1:14:59 google collab (new!!) notebook advertisement (7 captions)
+these notebooks more accessible and so i don't want you to have to like install jupyter notebooks and torch and everything else so i will be sharing a link to a google colab and google collab will look like a notebook in your browser and you can just go to the url and you'll be able to execute all of the code that you saw in
+you to like tinker with the numbers right there in your browser no installation necessary so i just wanted to point that out and the link to this will be in the video description
+
+=== 4.txt ===
+
+0:00 intro (14 captions)
+hi everyone today we are continuing our implementation of make more now in the last lecture we implemented the multier perceptron along the lines of benj 2003 for character level language modeling so we followed this paper took in a few characters in the past and used an MLP to predict the next character in a sequence so what we'd like to do now is
+behave and what they look like and this is going to be very important to understand the history of the development of these architectures because we'll see that recurr neural networks while they are very expressive in that they are a universal
+training and we'll see that a lot of the variants since recur neural networks have tried to improve that situation and so that's the path that we have to take and uh let's get started so the starting code for this lecture is largely the
+
+1:25 starter code (29 captions)
+code from before but I've cleaned it up a little bit so you'll see that we are importing all the torch and math plb utilities we're reading in the words just like before these are eight example words there's a total of 32,000 of them here's a vocabulary of all the lowercase letters and the special dot token here
+test I index in and I get the correct split and then this is the forward pass of the network and evaluation of the loss and printing it so just making that nicer uh one thing that you'll notice
+still not amazing and they're still not fully name like uh but it's much better than what we had with the BAM model so that's our starting point now the first thing I would like to scrutinize is the initialization I can tell that our
+
+4:24 fixing the initial loss (82 captions)
+network is very improperly configured at initialization and there's multiple things wrong with it but let's just start with the first one look here on the zeroth iteration the very first iteration we are recording a loss of 27 and this rapidly comes down to roughly one or two or so so I can tell that the initialization is all messed up because
+and record the loss that we expect at initialization so let's now concretely see where things go wrong in our example here we have the initialization let me reinitialize the neuronet and here let me break after the very first iteration
+weights because they are so way too high in the beginning in the initialization so something to look out for and uh that's number one now let's look at the second problem let me reinitialize our neural net and let me reintroduce The
+
+13:04 fixing the saturated tanh (140 captions)
+Brak statement so we have a reasonable initial loss so even though everything is looking good on the level of the loss and we get something that we expect there's still a deeper problem looking inside this neural net and its initialization so the logits are now okay the problem now is with the values
+when no matter what inputs you plug in from your data set this 10h neuron always fir completely one or completely negative one and then it will just not learn because all the gradients will be just zeroed out uh this is true not just for
+these errors and so um something to definitely be aware of and uh something to scrutinize something to plot and something to be careful with and um yeah
+
+27:53 calculating the init scale: “Kaiming init” (121 captions)
+okay so that's great that that worked for us but what we have here now is all these magic numbers like0 2 like where do I come up with this and how am I supposed to set these if I have a large neural net with lots and lots of layers and so obviously no one does this by hand there's actually some relatively principled ways of setting these scales
+normalize the gradients to to be always uh gsh in with zero mean and a unit or one standard deviation and because they find in the paper that this doesn't matter too much most of the people just
+and guessing checking we have something that is semi- principled and will scale us to uh much bigger networks and uh something that we can sort of use as a guide so I mentioned that the precise setting of these initializations is not
+
+40:43 batch normalization (217 captions)
+as important today due to some Modern Innovations and I think now is a pretty good time to introduce one of those modern Innovations and that is batch normalization so bat normalization came out in uh 2015 from a team at Google and it was an extremely impact paper because it made it possible to train very deep neuron Nets quite reliably and uh it
+very strange way this actually turns out to be good in your Network training and as a side effect and the reason for that is that you can think of this as kind of like a regularizer because what's
+do anything catastrophic this B1 will just be useless it will never get any gradient uh it will not learn it will stay constant and it's just wasteful but it doesn't actually really uh impact anything otherwise okay so I rearranged
+
+1:03:07 batch normalization: summary (17 captions)
+the code a little bit with comments and I just wanted to give a very quick summary of The Bash normalization layer we are using bash normalization to control the statistics of activations in the neural net it is common to sprinkle bash normalization layer across the neural net and usually we will place it after layer that have multiplications
+update so um these are sort of the parameters and the buffers of Bator layer and then really what it's doing is it's calculating the mean and a standard deviation of the activations uh that are
+individual examples at test time so that's the bash normalization layer it's a fairly complicated layer um but this is what it's doing internally now I wanted to show you a little bit of a real example so you can search resnet
+
+1:04:55 real example: resnet50 walkthrough (92 captions)
+which is a residual neural network and these are common types of neural networks used for image classification and of course we haven't come resnets in detail so I'm not going to explain all the pieces of it but for now just note that the image feeds into a reset on the top here and there's many many layers with repeating structure all
+weight Matrix should be you need to also pass in whether you whether or not you want a bias and if you set it to false then no bias will be uh inside this layer um and you may want to do that
+otherwise they link to the paper is the same formula we've implemented and everything is the same exactly as we've done here okay so that's everything that I wanted to cover for this lecture really
+
+1:14:14 summary of the lecture (43 captions)
+what I wanted to talk about is the importance of understanding the activations and the gradients and their statistics in neural networks and this becomes increasingly important especially as you make your neural networks bigger larger and deeper we looked at the distributions basically at the output layer and we saw that if you have two confident mispredictions because the activations are too messed
+actually had to add a lot of bells and whistles and that gave you a sense of the complexities of the batch normalization layer because now we're centering the data that's great but suddenly we need the gain and the bias and now those are
+statistics and all these normalization layers will become very very important for uh good performance so we'll see that next time bye okay so I lied I would like us to do one more summary here as a bonus and I think it's useful
+
+1:18:40 just kidding: part2: PyTorch-ifying the code (79 captions)
+as to have one more summary of everything I've presented in this lecture but also I would like us to start by torify our code a little bit so it looks much more like what you would encounter in PCH so you'll see that I will structure our code into these modules like a link uh module and a borm module and I'm
+not return the mean and the variance this is trained sort of like internally here um every forward pass using exponential moving average so that's the initialization now in a forward pass if
+already used to uh all the all the gradient set To None do the backward to fill in the gradients uh do an update using stochastic gradient sent and then uh track some statistics and then I am going to break after a single iteration
+
+1:26:52 viz #1: forward pass activations statistics (39 captions)
+now here in this cell in this diagram I I'm visualizing the histogram the histograms of the for pass activations and I'm specifically doing it at the 10 each layers so iterating over all the layers except for the very last one which is basically just the U soft Max layer um if it is a 10h layer and I'm
+will see that the standard deviation is shrinking and the saturation is coming to zero and basically what's happening is the first layer is you know pretty decent but then further layers are just
+our saturation is roughly 5% which is a pretty good number and uh this is a good setting of The gain in this context similarly we can do the exact same thing with the gradients so here is a very
+
+1:30:59 viz #2: backward pass gradient statistics (11 captions)
+same Loop if it's a 10h but instead of taking a layer do out I'm taking the grad and then I'm also showing the mean and the standard deviation and I'm plotting the histogram of these values and so you'll see that the gradient distribution is uh fairly reasonable and in particular what we're looking for is that all the different layers in this
+0.5 then you see the first of all the activations are shrinking to zero but also the gradients are doing something weird the gradients started out here and then now they're like expanding out and similarly if we for example have
+and in this case we saw that without the use of batro as we are going through right now we had to very carefully set those gains to get nice activations in both the forward pass and the backward pass now before we move on to bat
+
+1:32:09 the fully linear case of no non-linearities (39 captions)
+normalization I would also like to take a look at what happens when we have no 10h units here so erasing all the 10 nonlinearities but keeping the gain at 5 over3 we now have just a giant linear sandwich so let's see what happens to the activations as we saw before the correct gain here
+like this it's like a total Balancing Act you have to make sure that everything is precisely orchestrated and you have to care about the activations and the gradients and their statistics and then maybe you can train something uh but it was it was basically
+linear uh function into uh a neural network that can in principle um approximate any arbitrary function okay so now I've reset the code to use the linear tanh sandwich like before and I
+
+1:36:20 viz #3: parameter activation and gradient statistics (35 captions)
+reset everything so the gain is 5 over three uh we can run a single step of optimization and we can look at the activation statistics of the forward pass and the backward pass but I've added one more plot here that I think is really important to look at when you're training your neural nuts and to consider and ultimately what we're doing
+low numbers so the values inside grad are 1,000 times smaller than the values inside data in these weights most of them now notably that is not true about
+actually coming coming in during the optimization but certainly this is like a little bit of troubling especially if you are using a very simple update rule like stochastic gradient descent instead of a modern Optimizer like Adam now I'd
+
+1:39:55 viz #4: update:data ratio over time (59 captions)
+like to show you one more plot that I usually look at when I train neural networks and basically the gradient to data ratio is not actually that informative because what matters at the end is not the gradient to data ratio but the update to the data ratio because that is the amount by which we will actually change the data in these
+so here you see how we multiplied The Weight by 0.1 uh in the initialization to make the last layer prediction less confident that made that artificially made the
+plots here are a good way of um sort of bringing um those miscalibrations sort of uh to your attention and so you can address them okay so so far we've seen
+
+1:46:05 bringing back batchnorm, looking at the visualizations (51 captions)
+that when we have this linear tanh sandwich we can actually precisely calibrate the gains and make the activations the gradients and the parameters and the updates all look pretty decent but it definitely feels a little bit like balancing of a pencil on your finger and that's because this gain
+normalization the gradients are going to look okay the weight gradients are going to look okay okay but actually the updates will change and so even though the forward and backward pass to a very large extent
+here but this the activations of the forward backward pass and the updates are are looking significantly more well behaved except for the global scale that is potentially being adjusted here okay
+
+1:51:34 summary of the lecture for real this time (43 captions)
+so now let me summarize there are three things I was hoping to achieve with this section number one I wanted to introduce you to bat normalization which is one of the first modern innovations that we're looking into that helped stabilize very deep neural networks and their training and I hope you understand how the B normalization works and um how it would
+very well now there's a number of things I did not try to achieve I did not try to beat our previous performance as an example by introducing using the bash layer actually I did try um and I found
+now so I think we've made positive progress in this lecture and I hope you enjoyed that and I will see you next time
+
+=== 5.txt ===
+
+0:00 intro: why you should care & fun history (74 captions)
+hi everyone so today we are once again continuing our implementation of make more now so far we've come up to here montalia perceptrons and our neural net looked like this and we were implementing this over the last few lectures now I'm sure everyone is very excited to go into recurring neural networks and all of their variants and how they work
+that today writing your backward pass by hand and manually is not recommended and no one does it except for the purposes of exercise but about 10 years ago in deep learning this was fairly standard and in fact pervasive so at the time
+multiplayer perceptron with a batch normalization layer so the forward pass will be basically identical to this lecture but here we're going to get rid of lost and backward and instead we're going to write the backward pass manually
+
+7:26 starter code (56 captions)
+now here's the starter code for this lecture we are becoming a back prop ninja in this notebook and the first few cells here are identical to what we are used to so we are doing some imports loading the data set and processing the data set none of this changed now here I'm introducing a utility
+we want to retain the grad of all these intermediate values because here in exercise one we're going to calculate the backward pass so we're going to calculate all these D values D variables and use the CNP function I've introduced
+my video and see me do it and so work in Tandem and try it first yourself and then see me give away the answer and I think that'll be most valuable to you and that's how I recommend you go through this lecture so we are starting here with d-log props
+
+13:03 exercise 1: backproping the atomic compute graph (496 captions)
+now d-lock props will hold the derivative of the loss with respect to all the elements of log props what is inside log blobs the shape of this is 32 by 27. so it's not going to surprise you that D log props should
+now in the forward pass we only used values because that's all we needed but in the backward pass it's extremely useful to know about where those maximum values occurred and we have the indices
+so this is our candidate let me bring this down and uncommon to the check and we see that we have the correct result now before we propagate through the next line I want to briefly talk about the
+
+1:05:20 brief digression: bessel’s correction in batchnorm (196 captions)
+note here where I'm using the bezels correction dividing by n minus 1 instead of dividing by n when I normalize here the sum of squares now you'll notice that this is departure from the paper which uses one over n instead not one over n minus one their m is RN and
+so if you scrutinize this by the way you'll notice that this is the same shape as that and so what I'm doing uh what I'm doing here doesn't actually make that much sense because it's just a array of ones multiplying DP and diff so
+fingers hey so that's it we've back propagated through this entire Beast so there we go totally makes sense
+
+1:26:31 exercise 2: cross entropy loss backward pass (98 captions)
+so now we come to exercise two it basically turns out that in this first exercise we were doing way too much work uh we were back propagating way too much and it was all good practice and so on but it's not what you would do in practice and the reason for that is for example here I separated out this loss calculation over multiple lines and I
+in the dimension that is one so basically we want to do the softmax along the rows of these logits then at the correct positions we need to subtract a 1. so delugits at iterating
+through and that's basically the magic of the cross-entropy loss and what it's doing dynamically in the backward pass of the neural net so now we get to exercise number three which is a very fun exercise
+
+1:36:42 exercise 3: batch norm layer backward pass (130 captions)
+um depending on your definition of fun and we are going to do for batch normalization exactly what we did for cross entropy loss in exercise number two that is we are going to consider it as a glued single mathematical expression and back propagate through it in a very efficient manner because we are going to derive a much simpler formula for the backward path of batch
+second term cancel and so these uh if you just have a mathematical expression like this and you look at D Sigma Square by D mu you would get some mathematical formula for
+correctly implemented here and broadcasted correctly and replicated in parallel for all of the 64 neurons inside this bastrum layer okay and finally exercise number four asks you to
+
+1:50:05 exercise 4: putting it all together (42 captions)
+put it all together and uh here we have a redefinition of the entire problem so you see that we reinitialize the neural nut from scratch and everything and then here instead of calling loss that backward we want to have the manual back propagation here as we derived It Up Above so go up copy paste all the chunks of code that we've already derived put
+this is the old way of pytorch we don't have that anymore because we're not doing backward we are going to use this update where we you see that I'm iterating over I've arranged the grads to be in the
+um each one of these layers is like three lines of code or something like that and most of it is fairly straightforward potentially with the notable exception of the batch normalization backward pass otherwise it's pretty good okay and
+
+1:54:25 outro (10 captions)
+that's everything I wanted to cover for this lecture so hopefully you found this interesting and what I liked about it honestly is that it gave us a very nice diversity of layers to back propagate through and um I think it gives a pretty nice and comprehensive sense of how these backward passes are implemented and how they work and you'd be able to derive
+through all the variables and all the intermediate results and if you understood a good chunk of it and if you have a sense of that then you can count yourself as one of these buff doji's on the left instead of the uh
+other variants of RNs and we're going to start to complexify the architecture and start to achieve better uh log likelihoods and so I'm really looking forward to that and I'll see you then
+
+=== 6.txt ===
+
+0:00 intro (17 captions)
+hi everyone today we are continuing our implementation of make more our favorite character level language model now you'll notice that the background behind me is different that's because I am in Kyoto and it is awesome so I'm in a hotel room here now over the last few lectures we've built up to this architecture that is a
+quickly instead we would like to make a deeper model that progressively fuses this information to make its guess about the next character in a sequence and so we'll see that as we make this architecture more complex we're actually
+character in a sequence uh with the street-like structure and this is the architecture and we're going to implement it in the course of this video so let's get started so the starter code for part five is very similar to where
+
+1:43 starter code walkthrough (51 captions)
+we ended up in in part three recall that part four was the manual black replication exercise that is kind of an aside so we are coming back to part three copy pasting chunks out of it and that is our starter code for part five I've changed very few things otherwise so a lot of this should look familiar to if you've gone through part three so in
+the activations across the examples in the batch so normally we thought of the bat as just an efficiency thing but now we are coupling the computation across batch elements and it's done for the
+but not amazing and we can still push this validation loss even lower and get much better samples that are even more name-like so let's improve this model okay first let's fix this graph because
+
+6:58 let’s fix the learning rate plot (23 captions)
+it is daggers in my eyes and I just can't take it anymore um so last I if you recall is a python list of floats so for example the first 10 elements now what we'd like to do basically is we need to average up um some of these values to get a more
+be this or like that but it will work of course this would not work okay so this allows it to spread out some of the consecutive values into rows so that's very helpful because what we
+us to settle into sort of the local minimum in this optimization so this is a much nicer plot let me come up and delete the monster and we're going to be using this going forward now next up what I'm bothered by is that you
+
+9:19 pytorchifying our code: layers, containers, torch.nn, fun bugs (76 captions)
+see our forward pass is a little bit gnarly and takes way too many lines of code so in particular we see that we've organized some of the layers inside the layers list but not all of them uh for no reason so in particular we see that we still have the embedding table a special case outside of the layers and
+maintains a list of layers and is a module class in pytorch and it basically just passes a given input through all the layers sequentially exactly as we are doing here
+and running variants inside the bachelor and so again an example of introducing a bug inline because we did not properly maintain the state of what is training or not okay so I Rewritten everything
+
+17:12 overview: WaveNet (23 captions)
+and here's where we are as a reminder we have the training loss of 2.05 and validation 2.10 now because these losses are very similar to each other we have a sense that we are not overfitting too much on this task and we can make additional progress in our performance by scaling up the size of the neural network and
+sequence it is a function of the previous characters that are feeding that feed in but not all of these different characters are not just crushed to a single layer and then you have a sandwich they are crushed slowly
+the network deeper and at each level we want to fuse only two consecutive elements two characters then two bigrams then two four grams and so on so let's unplant this okay so first up let me scroll to where we built the data set
+
+19:35 dataset bump the context size to 8 (4 captions)
+and let's change the block size from 3 to 8. so we're going to be taking eight characters of context to predict the ninth character so the data set now looks like this we have a lot more context feeding in to predict any next character in a sequence and these eight characters are going to be processed in this tree like structure
+character in a sequence and these eight characters are going to be processed in this tree like structure now if we scroll here everything here should just be able to work so we should be able to redefine the network
+
+19:59 re-running baseline code on block_size 8 (17 captions)
+you see the number of parameters has increased by 10 000 and that's because the block size has grown so this first linear layer is much much bigger our linear layer now takes eight characters into this middle layer so there's a lot more parameters there but this should just run let me just break right after
+increasing the context line length so I started a little bit of a performance log here and previously where we were is we were getting a performance of 2.10 on the validation loss and now simply scaling up the contact length from 3 to
+optimization like left on the table in terms of some of the hyper parameters that you're hopefully getting a sense of now okay so let's scroll up now and come back up and what I've done here
+
+21:41 implementing WaveNet (153 captions)
+is I've created a bit of a scratch space for us to just like look at the forward pass of the neural net and inspect the shape of the tensor along the way as the neural net uh forwards so here I'm just temporarily for debugging creating a batch of just say four examples so four random integers then I'm plucking out
+and then here this gives us all the odd characters and basically what we want to do is we make sure we want to make sure that these get concatenated in pi torch and then we want to concatenate these two tensors
+implemented here um now we just have to kind of figure out some good Channel numbers to use here now in particular I changed the number of hidden units to be 68 in this architecture because when I use 68 the
+
+37:47 training the WaveNet: first pass (11 captions)
+number of parameters comes out to be 22 000 so that's exactly the same that we had before and we have the same amount of capacity at this neural net in terms of the number of parameters but the question is whether we are utilizing those parameters in a more efficient architecture so what I did then is I got rid of a lot of the debugging cells here
+for the number of parameters changing from the flat to hierarchical is not giving us anything yet that said there are two things um to point out number one we didn't really torture the um architecture here very much this is just my first guess
+bachelor 1D layer so let's take a look at um uh that because it runs but does it do the right thing so I pulled up the layer inspector sort of that we have here and printed out the
+
+38:55 fixing batchnorm1d bug (65 captions)
+shape along the way and currently it looks like the batch form is receiving an input that is 32 by 4 by 68 right and here on the right I have the current implementation of Bachelor that we have right now now this bachelor assumed in the way we wrote it and at the time that X is two-dimensional so it was n by D where n
+course is going to be the same but now what's going to happen is because we reduce over 0 and 1 if we look at immin.shape we see that now we've reduced we took
+of our channels and we're treating both the zeroth and the First Dimension as a batch Dimension which is exactly what we want so let me retrain the neural lot now okay so I retrained the neural net with the bug fix we get a nice curve and
+
+45:25 re-training WaveNet with bug fix (7 captions)
+when we look at the validation performance we do actually see a slight Improvement so we went from 2.029 to 2.022 so basically the bug inside the bathroom was holding up us back like a little bit it looks like and we are getting a tiny Improvement now but it's not clear if this is statistical significant
+so you just have a lot more numbers that go into any one estimate of the mean and variance and it allows things to be a bit more stable and less Wiggly inside those estimates of those statistics so
+
+46:07 scaling up our WaveNet (9 captions)
+pretty nice with this more General architecture in place we are now set up to push the performance further by increasing the size of the network so for example I bumped up the number of embeddings to 24 instead of 10 and also increased number of hidden units but using the exact same architecture we now have 76 000 parameters and the training
+getting validation performance of 1.993 so we've crossed over the 2.0 sort of territory and right about 1.99 but we are starting to have to wait quite a bit
+learning rates and so on because the experiments are starting to take longer to train and so we are missing sort of like an experimental harness on which we could run a number of experiments and really tune this architecture very well so I'd like to conclude now with a few
+
+46:59 experimental harness (7 captions)
+notes we basically improved our performance from a starting of 2.1 down to 1.9 but I don't want that to be the focus because honestly we're kind of in the dark we have no experimental harness we're just guessing and checking and this whole thing is terrible we're just looking at the training loss normally you want to look at both the training and the validation loss together and the
+forward pass of it where you have a more complicated a linear layer sort of that is this gated linear layer kind of and there's residual connections and Skip connections and so on so we did not Implement that we just implemented this
+
+47:44 WaveNet but with “dilated causal convolutions” (40 captions)
+structure I would like to briefly hint or preview how what we've done here relates to convolutional neural networks as used in the wavenet paper and basically the use of convolutions is strictly for efficiency it doesn't actually change the model we've implemented so here for example let me look at a specific name to work
+we're interested in is one dimensional and we're interested in sliding these filters over the input data so this diagram actually is fairly good as well basically what we've done is here they
+layer and then the output layer of the sandwich and it's all done very efficiently using these convolutions so we're going to cover that in a future video the second thing I hope you took away from this video is you've seen me
+
+51:37 torch.nn (9 captions)
+basically Implement all of these layer Lego building blocks or module building blocks and I'm implementing them over here and we've implemented a number of layers together and we've also implemented these these containers and we've overall pytorchified our code
+the neural networks library on top of torch.tensor and it looks very much like this except it is much better because because it's in pi torch instead of jingling my Jupiter notebook so I think
+in there how these modules work how they're nested and what they're doing on top of torture tensor so hopefully we'll just uh we'll just switch over and continue and start using torch.net directly the next thing I hope you got a
+
+52:29 the development process of building deep neural nets (18 captions)
+bit of a sense of is what the development process of building deep neural networks looks like which I think was relatively representative to some extent so number one we are spending a lot of time in the documentation page of pytorch and we're reading through all the layers looking at documentations where the shapes of the inputs what can
+of gymnastics around these multi-dimensional arrays and are they two-dimensional three-dimensional four-dimensional uh what layers take what shapes is it NCL or NLC and you're promoting and viewing and it just can
+paste into vs code and then I kick off experiments from from the reaper of course from the code repository so that's roughly some notes on the development process of working with neurons lastly I think this lecture unlocks a lot of potential further
+
+54:21 going forward (11 captions)
+lectures because number one we have to convert our neural network to actually use these dilated causal convolutional layers so implementing the comnet number two potentially starting to get into what this means whatever residual connections and Skip connections and why are they useful
+can kick off experiments you have lots of arguments that your script can take you're you're kicking off a lot of experimentation you're looking at a lot of plots of training and validation losses and you're looking at what is working and what is not working and you're working on this like population
+should probably cover recurring neural networks RNs lstm's grooves and of course Transformers so many uh places to go and we'll cover that in the future for now bye sorry I forgot to say that
+
+55:27 improve on my loss! how far can we improve a WaveNet on this data? (9 captions)
+if you are interested I think it is kind of interesting to try to beat this number 1.993 because I really haven't tried a lot of experimentation here and there's quite a bit of fruit potentially to still purchase further so I haven't tried any other ways of allocating these channels in this neural net maybe the number of dimensions for the embedding
+enough and actually beat my fancy hierarchical Network it's not obvious that would be kind of embarrassing if this did not do better even once you torture it a little bit maybe you can read the weight net paper and try to
+of the initialization or some of the optimization and see if you can improve it that way so I'd be curious if people can come up with some ways to beat this and yeah that's it for now bye
+
+=== 7.txt ===
+
+0:00 intro: ChatGPT, Transformers, nanoGPT, Shakespeare (76 captions)
+hi everyone so by now you have probably heard of chat GPT it has taken the world and AI Community by storm and it is a system that allows you to interact with an AI and give it text based tasks so for example we can ask chat GPT to write us a small Hau about how important it is that people understand Ai and then they
+basically it's a concatenation of all of the works of sh Shakespeare in my understanding and so this is all of Shakespeare in a single file uh this file is about 1 megab and it's just all
+uh so multi perceptrons and so on it really introduces the language modeling framework and then uh here in this video we're going to focus on the Transformer neural network itself okay so I created a new Google collab uh jup notebook here
+
+7:57 reading and exploring the data (15 captions)
+and this will allow me to later easily share this code that we're going to develop together uh with you so you can follow along so this will be in a video description uh later now here I've just done some preliminaries I downloaded the data set the tiny Shakespeare data set at this URL and you can see that it's about a 1 Megabyte file then here I open
+Constructor on it I'm just going to get the set of all the characters that occur in this text and then I call list on that to create a list of those characters instead of just a set so that
+capitals and lowercase letters so that's our vocabulary and that's the sort of like possible uh characters that the model can see or emit okay so next we will would like to develop some strategy
+
+9:31 tokenization, train/val split (48 captions)
+to tokenize the input text now when people say tokenize they mean convert the raw text as a string to some sequence of integers According to some uh notebook According to some vocabulary of possible elements so as an example here we are going to be building a character level language model so we're
+list of three integers but those integers are not between 0 and 64 they are between Z and 5, 5,256 so basically you can trade off the code book size and the sequence lengths
+true Shakespeare text um and so we're going to use this to uh get a sense of the overfitting okay so now we would like to start plugging these text sequences or integer sequences into the
+
+14:32 data loader: batches of chunks of data (72 captions)
+Transformer so that it can train and learn those patterns now the important thing to realize is we're never going to actually feed entire text into a Transformer all at once that would be computationally very expensive and prohibitive so when we actually train a Transformer on a lot of these data sets we only work with chunks of the data set
+Transformer we're going to have many batches of multiple chunks of text that are all like stacked up in a single tensor and that's just done for efficiency just so that we can keep the gpus busy uh because they are very good
+going to simultaneously process all these examples and then look up the correct um integers to predict in every one of these positions in the tensor y okay so now that we have our batch of input that we'd like to feed into a
+
+22:15 simplest baseline: bigram language model, loss, generation (120 captions)
+Transformer let's start basically feeding this into neural networks now we're going to start off with the simplest possible neural network which in the case of language modeling in my opinion is the Byram language model and we've covered the Byram language model in my make more series in a lot of depth and so here I'm going to sort of go
+getting 4.87 and so that's telling us that the initial predictions are not uh super diffuse they've got a little bit of entropy and so we're guessing wrong uh so uh yes but actually we're I a we
+do it this way so just a quick comment on that so now we see that this is um random so let's train the model so it becomes a bit less random okay let's Now train the model so first what I'm going to do is I'm going to create a pyour
+
+34:57 training the bigram model (30 captions)
+optimization object so here we are using the optimizer ATM W um now in a make more series we've only ever use tastic gradi in descent the simplest possible Optimizer which you can get using the SGD instead but I want to use Adam which is a much more advanced and popular Optimizer and it works extremely well
+longer okay so we're down to 3.6 roughly roughly down to
+have to start talking to each other and figuring out what is in the context so that they can make better predictions for what comes next and this is how we're going to kick off the uh Transformer okay so next I took the code
+
+38:02 port our code to a script (40 captions)
+that we developed in this juper notebook and I converted it to be a script and I'm doing this because I just want to simplify our intermediate work into just the final product that we have at this point so in the top here I put all the hyp parameters that we to find I introduced a few and I'm going to speak to that in a little bit otherwise a lot
+averages up the loss over multiple batches so in particular we're going to iterate eval iter times and we're going to basically get our loss and then we're going to get the average loss for both splits and so this will be a lot less
+the sample that we produced at the end and so we have everything packaged up in the script and we're in a good position now to iterate on this okay so we are almost ready to start writing our very first self attention block for
+
+42:18 version 1: averaging past context with for loops, the weakest form of aggregation (47 captions)
+processing these uh tokens now before we actually get there I want to get you used to a mathematical trick that is used in the self attention inside a Transformer and is really just like at the heart of an an efficient implementation of self attention and so I want to work with this toy example to
+we'll see how we can bring that information back later for now what we would like to do is for every single batch element independently for every teeth token in that sequence we'd like
+of all of these elements so vertical average just averaging up all the tokens now gives this outcome here so this is all well and good uh but this is very inefficient now the trick
+
+47:12 the trick in self-attention: matrix multiply as weighted aggregation (43 captions)
+is that we can be very very efficient about doing this using matrix multiplication so that's the mathematical trick and let me show you what I mean let's work with the toy example here let me run it and I'll explain I have a simple Matrix here that is a 3X3 of all ones a matrix B of just
+uh these elements here are now ignored so we just get a two and then this number here is the first row times the second column and because these are zeros they get ignored and it's just seven this seven multiplies this one but
+incremental fashion because we just get um and we can manipulate that based on the elements of a okay so that's very convenient so let's let's swing back up here and see how we can vectorize this
+
+51:59 version 2: using matrix multiply (25 captions)
+and make it much more efficient using what we've learned so in particular we are going to produce an array a but here I'm going to call it we short for weights but this is our a and this is how much of every row we want to average up and it's going to be
+below so this will now create B by T by C and Expo 2 will now become identical to Expo so we can see that torch. all close of
+of um information from the um tokens perceiving it so that's exactly what we want and finally I would like to rewrite it in one more way and we're going to see why that's useful so this is the
+
+54:48 version 3: adding softmax (35 captions)
+third version and it's also identical to the first and second but let me talk through it it uses softmax so Trill here is this Matrix lower triangular ones way begins as all
+to end up using it in self attention is that these weights here begin uh with zero and you can think of this as like an interaction strength or like an affinity so basically it's
+fashion and then the elements here in the lower triangular part are telling you how much of each element uh fuses into this position so we're going to use this trick now to develop the self attention block block so first let's get
+
+58:27 minor code cleanup (18 captions)
+some quick preliminaries out of the way first the thing I'm kind of bothered by is that you see how we're passing in vocap size into the Constructor there's no need to do that because vocap size is already defined uh up top as a global variable so there's no need to pass this stuff around next what I want to do is I don't
+this is going to give us token embeddings that's I'm going to call it and then to go from the token Tings to the logits we're going to need a linear layer so self. LM head let's call it
+run so we see that this runs and uh this currently looks kind of spous but uh we're going to build on top of this now next up so far we've taken these indices
+
+1:00:22 positional encoding (16 captions)
+and we've encoded them based on the identity of the uh tokens in inside idx the next thing that people very often do is that we're not just encoding the identity of these tokens but also their position so we're going to have a second position uh embedding table here so self. position embedding table is an an
+C and then here this gets renamed to just say x and x will be the addition of the token embeddings with the positional embeddings and here the broadcasting note will work out so B by T by C plus T
+currently wouldn't help uh but as we work on the self attention block we'll see that this starts to matter okay so now we get the Crux of self attention so this is probably the most important part of this video to
+
+1:02:05 THE CRUX OF THE VIDEO: version 4: self-attention (89 captions)
+understand we're going to implement a small self attention for a single individual head as they're called so we start off with where we were so all of this code is familiar so right now I'm working with an example where I Chang the number of channels from 2 to 32 so we have a 4x8 arrangement of tokens and
+T right so for every row of B we're now going to have a t Square Matrix giving us the affinities and these are now the way so
+gets aggregated for the purposes of this single head between the different notes and that's uh basically the self attention mechanism this is this is what it does there are a few notes that I would make like to make about attention
+
+1:11:41 note 1: attention as communication (11 captions)
+number one attention is a communication mechanism you can really think about it as a communication mechanism where you have a number of nodes in a directed graph where basically you have edges pointed between noes like this and what happens is every node has some Vector of information and it gets to aggregate information via a weighted
+look like this our graph has a different structure we have eight nodes because the block size is eight and there's always eight to tokens and uh the first node is only pointed to by itself the second node is
+of scenario like language modeling but in principle attention can be applied to any arbitrary directed graph and it's just a communication mechanism between the nodes the second note is that notice that there is no notion of space so
+
+1:12:51 note 2: attention has no notion of space, operates over sets (8 captions)
+attention simply acts over like a set of vectors in this graph and so by default these nodes have no idea where they are positioned in the space and that's why we need to encode them positionally and sort of give them some information that is anchored to a specific position so that they sort of know where they are
+a notion of space you need to specifically add it which is what we've done when we calculated the um relative the positional encode encodings and added that information to the vectors the next thing that I hope is very clear
+
+1:13:41 note 3: there is no communication across batch dimension (6 captions)
+is that the elements across the batch Dimension which are independent examples never talk to each other they're always processed independently and this is a batched matrix multiply that applies basically a matrix multiplication uh kind of in parallel across the batch dimension so maybe it would be more accurate to say that in this analogy of
+those eight nodes only talk to each other but in total there's like 32 nodes that are being processed uh but there's um sort of four separate pools of eight you can look at it that way the next note is that here in the case of
+
+1:14:18 note 4: encoder blocks vs. decoder blocks (13 captions)
+language modeling uh we have this specific uh structure of directed graph where the future tokens will not communicate to the Past tokens but this doesn't necessarily have to be the constraint in the general case and in fact in many cases you may want to have all of the uh noes talk to each other uh fully so as an example if you're doing
+attention and uh all it means that it's an encoder block is that you will delete this line of code allowing all the noes to completely talk to each other what we're implementing here is sometimes called a decoder block and it's called a
+would delete this allow all the noes to talk in decoder blocks this will always be present so that you have this triangular structure uh but both are allowed and attention doesn't care attention supports arbitrary connectivity between nodes the next
+
+1:15:40 note 5: attention vs. self-attention vs. cross-attention (13 captions)
+thing I wanted to comment on is you keep me you keep hearing me say attention self attention Etc there's actually also something called cross attention what is the difference so basically the reason this attention is self attention is because because the keys queries and the values are all
+are produced from X but the keys and the values come from a whole separate external source and sometimes from uh encoder blocks that encode some context that we'd like to condition on and so the keys and the values will
+each other and talk to each other so this attention here happens to be self attention but in principle um attention is a lot more General okay and the last
+
+1:16:57 note 6: "scaled" self-attention. why divide by sqrt(head_size) (21 captions)
+note at this stage is if we come to the attention is all need paper here we've already implemented attention so given query key and value we've U multiplied the query and a key we've soft maxed it and then we are aggregating the values there's one more thing that we're missing here which is the dividing by one / square root of the head size the
+fairly diffuse so in our case here we sort of locked out here and we had a fairly diffuse numbers here so um like this now the problem is that because of
+single node every node just agregates information from a single other node that's not what we want especially at initialization and so the scaling is used just to control the variance at initialization okay so having said all
+
+1:19:13 inserting a single self-attention block to our network (28 captions)
+that let's now take our self attention knowledge and let's uh take it for a spin so here in the code I created this head module and it implements a single head of self attention so you give it a head size and then here it creates the key query and the value linear layers typically people don't use biases in these uh so those are the linear
+going to go into uh the decoder language modeling head and create the logits so this the sort of the simplest way to plug in a self attention component uh into our Network right now I had to make
+amazing so clearly the self attention head is doing some useful communication but um we still have a long way to go okay so now we've implemented the scale. product attention now next up and the
+
+1:22:02 multi-headed self-attention (24 captions)
+attention is all you need paper there's something called multi-head attention and what is multi-head attention it's just applying multiple attentions in parallel and concatenating their results so they have a little bit of diagram here I don't know if this is super clear it's really just multiple attentions in
+channels we want eight dimensional self attention and so from each Communication channel we're going to together eight dimensional vectors and then we have four of them and that concatenates to give us 32 which is the original and
+different things and so it helps to create multiple independent channels of communication gather lots of different types of data and then uh decode the output now going back to the paper for a second of course I didn't explain this
+
+1:24:28 feedforward layers of transformer block (23 captions)
+figure in full detail but we are starting to see some components of what we've already implemented we have the positional encodings the token encodings that add we have the masked multi-headed attention implemented now here's another multi-headed attention which is a cross attention to an encoder which we haven't we're not going to implement in this
+found from the other tokens and so what I've implemented here is a little feet forward single layer and this little layer is just a linear followed by a Rel nonlinearity and that's that's it so
+that's also what the Transformer does when it has blocks that communicate and then compute and it groups them and replicates them okay so let me show you what we'd like to do we'd like to do
+
+1:26:51 residual connections (58 captions)
+something like this we have a block and this block is is basically this part here except for the cross attention now the block basically intersperses communication and then computation the computation the communication is done using multi-headed selfelf attention and then the computation is done using a feed forward
+blocks but basically you have this gradient Super Highway that goes directly from the supervision all the way to the input unimpeded and then these viral blocks are usually initialized in the beginning so they
+um uh Generations here are still not amazing but at least you see that we can see like is here this now grief syn like this starts to almost look like English so um yeah we're starting to really get there okay and the second Innovation
+
+1:32:52 layernorm (and its relationship to our previous batchnorm) (49 captions)
+that is very helpful for optimizing very deep neural networks is right here so we have this addition now that's the residual part but this Norm is referring to something called layer Norm so layer Norm is implemented in pytorch it's a paper that came out a while back here um and layer Norm is very very similar
+Transformer before I incorporate the layer Norm I just wanted to note that as I said very few details about the Transformer have changed in the last 5 years but this is actually something that slightly departs from the original paper you see that the ADD and Norm is
+Transformer I'll I'll talk about that in a second uh but at this stage uh the major pieces are in place so we can try to scale this up and see how well we can push this number now in order to scale out the model I had to perform some
+
+1:37:51 scaling up the model! creating a few variables. adding dropout (46 captions)
+cosmetic changes here to make it nicer so I introduced this variable called n layer which just specifies how many layers of the blocks we're going to have I created a bunch of blocks and we have a new variable number of heads as well I pulled out the layer Norm here and uh so this is identical now one thing that I did briefly change is I added a Dropout
+disabled and dropped to zero and then I already trained this and I ran it so uh drum roll how well does it perform so let me just scroll up here we get a validation loss of
+Transformer uh but the picture doesn't exactly match up to what we've done so what's going on with all these digital Parts here so let me finish explaining this architecture and why it looks so funky basically what's happening here is
+
+1:42:45 encoder vs. decoder vs. both (?) Transformers (34 captions)
+what we implemented here is a decoder only Transformer so there's no component here this part is called the encoder and there's no cross attention block here our block only has a self attention and the feet forward so it is missing this third in between piece here this piece
+additional information is the French sentence that they should be translating so what they do now is they bring in the encoder now the encoder reads this part here so we're only going
+no we have nothing to encode there's no conditioning we just have a text file and we just want to imitate it and that's why we are using a decoder only Transformer exactly as done in GPT okay okay so now I wanted to do a
+
+1:46:24 super quick walkthrough of nanoGPT, batched multi-headed self-attention (26 captions)
+very brief walkthrough of nanog GPT which you can find in my GitHub and uh nanog GPT is basically two files of Interest there's train.py and model.py train.py is all the boilerplate code for training the network it is basically all the stuff that we had here it's the training loop it's just that it's a lot
+and A C Dimension we also end up with a fourth dimension which is the heads and so it just gets a lot more sort of hairy because we have four dimensional array um tensors now but it is um equivalent
+few details are different but you should definitely be able to look at this uh file and be able to understand little the pieces now so let's now bring things back to chat GPT what would it look like if we wanted to train chat GPT ourselves
+
+1:48:59 back to ChatGPT, GPT-3, pretraining vs. finetuning, RLHF (54 captions)
+and how does it relate to what we learned today well to train in chat GPT there are roughly two stages first is the pre-training stage and then the fine-tuning stage in the pre-training stage uh we are training on a large chunk of internet and just trying to get a first decoder only Transformer to
+internet it will create arbitrary news articles and documents and it will try to complete documents because that's what it's trained for it's trying to complete the sequence so when you give it a question it would just uh potentially just give you more questions
+to open AI and uh it's much harder to replicate this stage um and so that's roughly what would give you a chat GPT and nanog GPT focuses on the pre-training stage okay and that's
+
+1:54:32 conclusions (18 captions)
+everything that I wanted to cover today so we trained to summarize a decoder only Transformer following this famous paper attention is all you need from 2017 and so that's basically a GPT we trained it on Tiny Shakespeare and got
+uh that's all I have for now uh we did not talk about any of the fine-tuning stages that would typically go on top of this so if you're interested in something that's not just language modeling but you actually want to you know say perform tasks um or you want
+uh so I'm going to um kind of finish here uh I hope you enjoyed the lecture uh and uh yeah go forth and transform see you later
+
+=== 8.txt ===
+
+0:00 intro: Tokenization, GPT-2 paper, tokenization-related issues (57 captions)
+hi everyone so in this video I'd like us to cover the process of tokenization in large language models now you see here that I have a set face and that's because uh tokenization is my least favorite part of working with large language models but unfortunately it is necessary to understand in some detail because it it is fairly hairy gnarly and
+you the paper that introduced a bite level encoding as a mechanism for tokenization in the context of large language models and I would say that that's probably the gpt2 paper and if you scroll down here to the section
+structure data all of that has to do with tokenization so basically tokenization is at the heart of many issues I will look back around to these at the end of the video but for now let me just um skip over it a little bit and
+
+5:56 tokenization by example in a Web UI (tiktokenizer) (86 captions)
+let's go to this web app um the Tik tokenizer bell.app so I have it loaded here and what I like about this web app is that tokenization is running a sort of live in your browser in JavaScript so you can just type here stuff hello world and the whole string rokenes so here what we see on uh the
+typically see that the number of tokens used is much larger and that's because the chunks here are a lot more broken up so we're using a lot more tokens for the exact same thing and what this does is it bloats up the sequence length of all
+model and the architecture and the details of the optimization but a lot of the Improvement here is also coming from the design of the tokenizer and how it groups characters into tokens okay so let's now start writing some code
+
+14:59 strings in Python, Unicode code points (32 captions)
+so remember what we want to do we want to take strings and feed them into language models for that we need to somehow tokenize strings into some integers in some fixed vocabulary and then we will use those integers to make a look up into a lookup table of vectors and feed those vectors into the
+characters across different scripts so the way we can access the unic code code Point given Single Character is by using the or function in Python so for example I can pass in Ord of H and I can see
+standard is very much alive and it keeps changing and so it's not kind of a stable representation necessarily that we may want to use directly so for those reasons we need something a bit better so to find something better we turn to
+
+18:17 Unicode byte encodings, ASCII, UTF-8, UTF-16, UTF-32 (43 captions)
+encodings so if we go to the Wikipedia page here we see that the Unicode consortion defines three types of encodings utf8 UTF 16 and UTF 32 these encoding are the way by which we can take Unicode text and translate it into binary data or by streams utf8 is by far
+byes that represent this string according to the utf8 en coding we can also look at utf16 we get a slightly different by stream and we here we start
+bite sequences um to a variable amount so we'll get to that in a bit but I just want to briefly speak to the fact that I would love nothing more than to be able to feed raw bite sequences into uh
+
+22:52 daydreaming: deleting tokenization (11 captions)
+language models in fact there's a paper about how this could potentially be done uh from Summer last last year now the problem is you actually have to go in and you have to modify the Transformer architecture because as I mentioned you're going to have a problem where the attention will start to become extremely expensive because the sequences are so
+establish the viability of tokenization free autor regressive sequence modeling at scale so tokenization free would indeed be amazing we would just feed B streams directly into our models but unfortunately I don't know that this has
+feed this directly into language models and we have to compress it using the B paare encoding algorithm so let's see how that works so as I mentioned the B paare encoding algorithm is not all that complicated and the Wikipedia page is
+
+23:55 Byte Pair Encoding (BPE) algorithm walkthrough (30 captions)
+actually quite instructive as far as the basic idea goes go what we're doing is we have some kind of a input sequence uh like for example here we have only four elements in our vocabulary a b c and d and we have a sequence of them so instead of bytes let's say we just have four a vocab size of four the sequence is too long and we'd
+occurrence of ab is now replaced with y so we end up with this so now we only have 1 2 3 4 5 6 seven characters in our sequence but we have not just um four
+encoding it using this uh vocabul and also decoding it back to Strings so let's now Implement all that so here's what I did I went to this block post that I enjoyed and I took the first
+
+27:07 starting the implementation (15 captions)
+paragraph and I copy pasted it here into text so this is one very long line here now to get the tokens as I mentioned we just take our text and we encode it into utf8 the tokens here at this point will be a raw bites single stream of bytes and just so that it's
+this has a length of 616 bytes at this point or 616 tokens and the reason this is more is because a lot of these simple asky characters or simple characters
+click on the link find this notebook and try to write that function yourself otherwise I'm going to come here and Implement first the function that finds the most common pair okay so here's what I came up with there are many different
+
+28:38 counting consecutive pairs, finding most common pair (18 captions)
+ways to implement this but I'm calling the function get stats it expects a list of integers I'm using a dictionary to keep track of basically the counts and then this is a pythonic way to iterate consecutive elements of this list uh which we covered in the previous video and then here I'm just keeping track of just incrementing by one um for all the
+it and by default python will uh use the first element which in this case will be value to sort by if it's given tles and then reverse so it's descending and
+basically there's a lot of E space here meaning that a lot of these words seem to end with e so here's eace as an example so there's a lot of that going on here and this is the most common pair so now that we've identified the most
+
+30:38 merging the most common pair (41 captions)
+common pair we would like to iterate over this sequence we're going to Mint a new token with the ID of 256 right because these tokens currently go from Z to 255 so when we create a new token it will have an ID of 256 and we're going to iterate over this
+match we append to this new list that replacement index and we increment the position by two so we skip over that entire pair but otherwise if we we haven't found a matching pair we just
+100,000 tokens and um bpark that those are reasonable numbers currently instead the are large language models so let me now write uh putting putting it all together and uh iterating these steps
+
+34:58 training the tokenizer: adding the while loop, compression ratio (42 captions)
+okay now before we dive into the Y loop I wanted to add one more cell here where I went to the block post and instead of grabbing just the first paragraph or two I took the entire block post and I stretched it out in a single line and basically just using longer text will allow us to have more representative statistics for the bite Pairs and we'll
+it's not a tree it's more like a forest um uh as we merge these elements so for 20 merges we're going to find the most commonly occurring pair we're going
+vocabulary elements you add uh the greater the compression ratio here would be finally so that's kind of like um the training of the tokenizer if you will
+
+39:25 tokenizer/LLM diagram: it is a completely separate stage (33 captions)
+now 1 Point I wanted to make is that and maybe this is a diagram that can help um kind of illustrate is that tokenizer is a completely separate object from the large language model itself so everything in this lecture we're not really touching the llm itself uh we're just training the tokenizer this is a completely separate pre-processing stage
+state-of-the-art application you might take all of your training data for the language model and you might run it through the tokenizer and sort of translate everything into a massive token sequence and then you can throw away the raw text you're just left with
+space uh so hopefully that makes sense so we're now going to turn to encoding and decoding now that we have trained a tokenizer so we have our merges and now how do we do encoding and decoding okay
+
+42:48 decoding tokens to strings (51 captions)
+so let's begin with decoding which is this Arrow over here so given a token sequence let's go through the tokenizer to get back a python string object so the raw text so this is the function that we' like to implement um we're given the list of integers and we want to return a python string if you'd like uh try to implement this function yourself it's a fun exercise otherwise
+unlucky so let me demonstrate the issue when I try to decode just something like 97 I am going to get letter A here back so nothing too crazy happening but when I try to decode 128 as a single element
+whenever you see um this kind of a character in your output in that case uh something went wrong and the LM output not was not valid uh sort of sequence of tokens okay and now we're going to go
+
+48:23 encoding strings to tokens (87 captions)
+the other way so we are going to implement this Arrow right here where we are going to be given a string and we want to encode it into tokens so this is the signature of the function that we're interested in and um this should basically print a list of integers of the tokens so again uh try to maybe implement this yourself if
+the tokens now one thing to be careful with here is this uh function here might fail in the following way if there's nothing to merge then uh uh then there's
+the kinds of tokenizers that they use and we're going to see that this picture complexifies very quickly so we're going to go through the details of this comp complexification one at a time so let's
+
+57:37 regex patterns to force splits across categories (132 captions)
+kick things off by looking at the GPD Series so in particular I have the gpt2 paper here um and this paper is from 2019 or so so 5 years ago and let's scroll down to input representation this is where they talk about the tokenizer that they're using for gpd2 now this is all fairly readable so I encourage you
+not to happen and we're going to go into more of this text and we'll see that what this is trying to do on a high level is we're trying to not merge across letters across numbers across punctuation and so on so let's see in
+above and applies them to a new piece of text and so we don't know exactly how opening ey trained um train the tokenizer but it wasn't as simple as chunk it up and BP it uh whatever it was
+
+1:11:38 tiktoken library intro, differences between GPT-2/GPT-4 regex (33 captions)
+next I wanted to introduce you to the Tik token library from openai which is the official library for tokenization from openai so this is Tik token bip install P to Tik token and then um you can do the tokenization in inference this is again not training code this is only inference code for
+the GPT 4 tokenizer you see that the pattern has changed um and this is kind of like the main the major change in addition to a bunch of other special tokens which I'll go into in a bit again
+um yeah it is what it is but those are some of the changes that gp4 has made and of course the vocabulary size went from roughly 50k to roughly 100K the next thing I would like to do very briefly is to take you through the
+
+1:15:02 GPT-2 encoder.py released by OpenAI walkthrough (33 captions)
+gpt2 encoder dopy that openi has released uh this is the file that I already mentioned to you briefly now this file is uh fairly short and should be relatively understandable to you at this point um starting at the bottom
+have something called a bite encoder and a bite decoder and this is actually unfortunately just kind of a spirous implementation detail and isn't actually deep or interesting in any way so I'm going to skip the
+we've built up above if you understand it is algorithmically what is necessary to actually build a BP to organizer train it and then both encode and decode the next topic I would like to turn to is that of special tokens so in addition
+
+1:18:30 special tokens, tiktoken handling of, GPT-2/GPT-4 differences (66 captions)
+to tokens that are coming from you know raw bytes and the BP merges we can insert all kinds of tokens that we are going to use to delimit different parts of the data or introduced to create a special structure of the token streams so in uh if you look at this encoder object from open AIS gpd2 right here we
+pervasively uh not just in uh basically base language modeling of predicting the next token in the sequence but especially when it gets to later to the fine tuning stage and all of the chat uh gbt sort of aspects of it uh because we
+fine tune the model for example taking it from a base model to a chat model like chat GPT okay so at this point you should have everything you need in order to build your own gp4 tokenizer now in the
+
+1:25:33 minbpe exercise time! write your own GPT-4 tokenizer (30 captions)
+process of developing this lecture I've done that and I published the code under this repository MBP so MBP looks like this right now as I'm recording but uh the MBP repository will probably change quite a bit because I intend to continue working on it um in addition to the MBP repository I've
+merges uh so the first 256 are raw individual bytes and then here I am visualizing the merges that gp4 performed during its training so the very first merge that gp4 did was merge
+running the same algorithm and when you train your own you're probably going to get something similar depending on what you train it on okay so we are now going to move on from tick token and the way that open AI tokenizes its strings and
+
+1:28:47 sentencepiece library intro, used to train Llama 2 vocabulary (139 captions)
+we're going to discuss one more very commonly used library for working with tokenization inlm and that is sentence piece so sentence piece is very commonly used in language models because unlike Tik token it can do both training and inference and is quite efficient at both it supports a
+these are the individual pieces the individual tokens that sentence piece will create so in the beginning we see that we have the an token uh with the ID zero then we have the beginning of
+because uh the documentation unfortunately is in my opion not not super amazing but it is a very nice repo that is available to you if you'd like to train your own tokenizer right now okay let me now switch gears again as we're starting to slowly wrap up here I
+
+1:43:31 how to set vocabulary set? revisiting gpt.py transformer (46 captions)
+want to revisit this issue in a bit more detail of how we should set the vocap size and what are some of the considerations around it so for this I'd like to go back to the model architecture that we developed in the last video when we built the GPT from scratch so this here was uh the file that we built in the previous video and we defined the Transformer model and and
+be worried that basically the vectors associated with every token will be undertrained as a result because they just don't come up too often and they don't participate in the forward backward pass in addition to that as your vocab size grows you're going to start shrinking your sequences a lot
+freeze arbitrary parts of it or you can train arbitrary parts of it and that's totally up to you but basically minor surgery required if you'd like to introduce new tokens and finally I'd like to mention that actually there's an
+
+1:48:13 training new tokens, example of prompt compression (18 captions)
+entire design space of applications in terms of introducing new tokens into a vocabulary that go Way Beyond just adding special tokens and special new functionality so just to give you a sense of the design space but this could be an entire video just by itself uh this is a paper on learning to compress prompts with what they called uh gist tokens and the rough idea is suppose
+optimizing over the new tokens such that the behavior of the language model is identical uh to the model that has a very long prompt that works for you and so it's a compression technique of compressing that very long prompt into
+example but this could again be like an entire video but just to give you a sense that there's a whole design space here that is potentially worth exploring in the future the next thing I want to briefly address is that I think recently there's a lot of momentum in how you
+
+1:50:03 multimodal [image, video, audio] tokenization with vector quantization (16 captions)
+actually could construct Transformers that can simultaneously process not just text as the input modality but a lot of other modalities so be it images videos audio Etc and how do you feed in all these modalities and potentially predict these modalities from a Transformer uh do you have to change the architecture
+force them to be integers they can also be soft tokens where you uh sort of don't require uh these to be discrete but you do Force these representations to go through bottlenecks like in Auto encoders uh also in this paper that came
+with diffusion models and uh all of that is sort of uh being actively worked on designed on and is beyond the scope of this video but just something I wanted to mention briefly okay now that we have come quite deep into the tokenization
+
+1:51:45 revisiting and explaining the quirks of LLM tokenization (180 captions)
+algorithm and we understand a lot more about how it works let's loop back around to the beginning of this video and go through some of these bullet points and really see why they happen so first of all why can't my llm spell words very well or do other spell related tasks so fundamentally this is because
+we're putting it here like this and the model has seen very very little data of actual Space by itself and we're asking it to complete the sequence like add in more tokens but the problem is that
+care about and worry about at all times and try to find efficient encoding schemes and spend a lot of time in tick tokenizer and measure the different token efficiencies of different formats and settings and so on okay so that
+
+2:10:21 final recommendations (30 captions)
+concludes my fairly long video on tokenization I know it's a try I know it's annoying I know it's irritating I personally really dislike the stage what I do have to say at this point is don't brush it off there's a lot of foot guns sharp edges here security issues uh AI safety issues as we saw plugging in unallocated memory into uh language
+hyper parameters and go through the code of sentence piece and make sure that you have this correct um but even if you have all the settings correct I still think that the algorithm is kind of inferior to what's happening here and
+is this is a spous layer that I will explain in a bit What's Happening Here is

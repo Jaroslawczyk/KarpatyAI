@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#141b1d" />
+    <meta
+      name="description"
+      content="Интерактивный учебник по лекциям Андрея Карпати: от производных и micrograd до GPT и токенизации. На русском и английском."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Neural Notes — нейронные сети изнутри</title>
+    <script>
+      try {
+        const saved = JSON.parse(localStorage.getItem('neural-notes:v1')) || {};
+        if (['dark', 'light', 'coffee'].includes(saved.theme))
+          document.documentElement.dataset.theme = saved.theme;
+        if (['ru', 'en'].includes(saved.lang)) document.documentElement.lang = saved.lang;
+      } catch {
+        /* Storage can be disabled. / Хранилище может быть недоступно. */
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript
+      >Для интерактивного учебника включите JavaScript. Enable JavaScript to use this
+      textbook.</noscript
+    >
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
