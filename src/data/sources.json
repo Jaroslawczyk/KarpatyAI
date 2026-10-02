@@ -1,14 +1,14 @@
 [
   {
     "file": "0.txt",
-    "sha256": "24230ede81cdf2e3d176041acdeab8e203a72c1ccdb570a1faf86d892427fedf",
-    "bytes": 10814,
+    "sha256": "4fd6f479ee9f424a07accc601471be246b0b25b23d0e773a5e57ca82dfc3b4fc",
+    "bytes": 10753,
     "chapters": []
   },
   {
     "file": "1.txt",
-    "sha256": "916d1535e53b7de8570f5297d531a6bf96acca2638ea9fd5ebd1e190e8305702",
-    "bytes": 137095,
+    "sha256": "00a5a34bd5f25292c5a3b4c93d99e01f6785adf73360ac67663690c7a491be3c",
+    "bytes": 134258,
     "chapters": [
       {
         "title": "intro",
@@ -5800,8 +5800,8 @@
   },
   {
     "file": "2.txt",
-    "sha256": "b46fc44ca6573e9d4e1cd970f7a4513b27cf26e8002b15baa0ca8c69037676f1",
-    "bytes": 111395,
+    "sha256": "abaa993cd74eb2783f251e12fdb39e62b509a43618cca89b3e38b4af1d85abc6",
+    "bytes": 109096,
     "chapters": [
       {
         "title": "intro",
@@ -10527,8 +10527,8 @@
   },
   {
     "file": "3.txt",
-    "sha256": "fd8e0789295c32df504bc6492054488cb466d6cd67355911fab9352860d416e5",
-    "bytes": 72777,
+    "sha256": "32bb20d68f7b7df347962e87156f927b6e65425b401ecfd70fb9ee1a9afacf79",
+    "bytes": 71295,
     "chapters": [
       {
         "title": "intro",
@@ -13595,8 +13595,8 @@
   },
   {
     "file": "4.txt",
-    "sha256": "56369a3a613eab2ff8b364b1ef4ea89ec498c3361a90aa1cffd96da77895d2dc",
-    "bytes": 123138,
+    "sha256": "9146f094e0ca849f0ccbd9122e65d5cd05488793008e94476b32d022bfc1f64b",
+    "bytes": 120900,
     "chapters": [
       {
         "title": "intro",
@@ -18165,8 +18165,8 @@
   },
   {
     "file": "5.txt",
-    "sha256": "fe0b48e6b2261751606376cb497afc0e9a1592c5d1ecde124e4a6b1d845b35d3",
-    "bytes": 116245,
+    "sha256": "67b7c66dfba8fc9886c618ff8cbb552e570782e58698436fb8ecb9724f77ef6a",
+    "bytes": 114034,
     "chapters": [
       {
         "title": "intro: why you should care & fun history",
@@ -22636,8 +22636,8 @@
   },
   {
     "file": "6.txt",
-    "sha256": "8d01fe90ce038580b6d7b7afdecdafba5e1282c7971d9dd256adb08b5d4ea78b",
-    "bytes": 59478,
+    "sha256": "6147f11857b506e2f5199be1e9b23114470e84129380ccad5f5dcd6deb84c6d6",
+    "bytes": 58361,
     "chapters": [
       {
         "title": "intro",
@@ -24969,8 +24969,8 @@
   },
   {
     "file": "7.txt",
-    "sha256": "2f4c169db46c166ea3fe43ed320fa6219cc1bd5aa7fa30a9f2db3148fd48f257",
-    "bytes": 120177,
+    "sha256": "871e8e12b2e110ab3cb4519264f0a3825b926cf5986805a29998592071fb4431",
+    "bytes": 117936,
     "chapters": [
       {
         "title": "intro: ChatGPT, Transformers, nanoGPT, Shakespeare",
@@ -29610,8 +29610,8 @@
   },
   {
     "file": "8.txt",
-    "sha256": "f990465a3ffdbe4fdad1c8eecb85e5fabf62a2a1d4153eb3de0f9073f9c70789",
-    "bytes": 139948,
+    "sha256": "56ab52d53b4f242c2b713ca0123b5f1e44a85e95c92db6dee667052c4e650113",
+    "bytes": 137387,
     "chapters": [
       {
         "title": "intro: Tokenization, GPT-2 paper, tokenization-related issues",
